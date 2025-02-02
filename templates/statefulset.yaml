@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-vertica
+  labels:
+    {{- include "vertica.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ .Release.Name }}-vertica
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "vertica.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "vertica.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+      - name: init-schema
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        command: ["/bin/sh", "/scripts/init-schema.sh"]
+        env:
+        - name: VERTICA_DB_NAME
+          value: {{ .Values.auth.dbName }}
+        - name: VERTICA_DB_USER
+          value: {{ .Values.auth.dbUser }}
+        - name: VERTICA_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-auth
+              key: dbPassword
+        volumeMounts:
+        - name: init-script
+          mountPath: /scripts
+      containers:
+      - name: vertica
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+          name: vertica
+        env:
+        - name: VERTICA_DB_NAME
+          value: {{ .Values.auth.dbName }}
+        - name: VERTICA_DB_USER
+          value: {{ .Values.auth.dbUser }}
+        - name: VERTICA_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-auth
+              key: dbPassword
+        volumeMounts:
+        - name: vertica-data
+          mountPath: /home/dbadmin/db
+        - name: init-script
+          mountPath: /home/dbadmin/init-schema.sh
+          subPath: init-schema.sh
+        livenessProbe:
+          tcpSocket:
+            port: vertica
+          initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+        readinessProbe:
+          tcpSocket:
+            port: vertica
+          initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+      volumes:
+      - name: vertica-data
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-pvc
+      - name: init-script
+        configMap:
+          name: {{ .Release.Name }}-vertica-init
+          defaultMode: 0755

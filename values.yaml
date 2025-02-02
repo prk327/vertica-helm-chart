@@ -1,0 +1,37 @@
+image:
+  repository: vertica/vertica-ce
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  clusterIP: None  # Headless service
+  port: 5433
+
+storage:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  size: 10Gi
+
+auth:
+  dbName: vdb           # Changed from testdb to vdb
+  schemaName: omniq     # New parameter
+  dbUser: dbadmin
+  dbPassword: "devpassword"
+
+securityContext:
+  runAsUser: 0
+  capabilities:
+    add:
+      - SYS_NICE
+      - SYS_RESOURCE
+      - SYS_PTRACE
+
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
