@@ -1,5 +1,5 @@
 apiVersion: v2
-name: vertica
-description: A Helm chart for deploying a single-node Vertica cluster
+name: vertica-chart
+description: A Helm chart to deploy Vertica with custom database, schema, and user.
 version: 0.1.0
-appVersion: 12.0.0
+appVersion: "1.0"

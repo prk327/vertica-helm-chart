@@ -1,16 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Release.Name }}
+  name: {{ include "vertica-chart.fullname" . }}
   labels:
-    {{- include "vertica.labels" . | nindent 4 }}
+    app: {{ include "vertica-chart.name" . }}
 spec:
-  clusterIP: {{ .Values.service.clusterIP }}
   type: {{ .Values.service.type }}
   ports:
-  - port: {{ .Values.service.port }}
-    targetPort: vertica
-    protocol: TCP
-    name: vertica
+    - port: {{ .Values.service.port }}
+      targetPort: 5433
+      protocol: TCP
+      name: vertica
   selector:
-    {{- include "vertica.selectorLabels" . | nindent 4 }}
+    app: {{ include "vertica-chart.name" . }}

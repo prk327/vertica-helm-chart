@@ -1,21 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-vertica-init
+  name: {{ include "vertica-chart.fullname" . }}-init-scripts
   labels:
-    {{- include "vertica.labels" . | nindent 4 }}
+    app: {{ include "vertica-chart.name" . }}
 data:
-  init-schema.sh: |
-    #!/bin/bash
-    set -e
-    
-    # Wait for Vertica to be ready
-    until vsql -U ${VERTICA_DB_USER} -w ${VERTICA_DB_PASSWORD} -d ${VERTICA_DB_NAME} -c '\q'; do
-      echo "Waiting for Vertica to accept connections..."
-      sleep 5
-    done
-
-    # Create schema
-    vsql -U ${VERTICA_DB_USER} -w ${VERTICA_DB_PASSWORD} -d ${VERTICA_DB_NAME} \
-      -c "CREATE SCHEMA IF NOT EXISTS {{ .Values.auth.schemaName }};"
-    echo "Schema {{ .Values.auth.schemaName }} created successfully"
+  01-create-schema.sql: |
+    {{ .Values.initScripts.createSchema }}
+  02-create-user.sql: |
+    {{ .Values.initScripts.createUser }}
