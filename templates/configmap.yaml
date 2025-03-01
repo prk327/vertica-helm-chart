@@ -6,6 +6,6 @@ metadata:
     app: {{ include "vertica-chart.name" . }}
 data:
   01-create-schema.sql: |
-    {{ .Values.initScripts.createSchema }}
-  02-create-user.sql: |
-    {{ .Values.initScripts.createUser }}
+    {{- if .Values.initScripts.enabled }}
+    {{- .Values.initScripts.createSchema | nindent 4 }}
+    {{- end }}

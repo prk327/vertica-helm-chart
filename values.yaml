@@ -20,7 +20,7 @@ service:
 # Persistent Volume Claim
 persistence:
   enabled: true
-  storageClass: "standard"
+  storageClass: ""
   accessModes:
     - ReadWriteOnce
   size: 10Gi
@@ -29,6 +29,223 @@ persistence:
 initScripts:
   enabled: true
   createSchema: |
-    CREATE SCHEMA omniq;
-  createUser: |
-    CREATE USER cognos IDENTIFIED BY 'password';
+    CREATE SCHEMA IF NOT EXISTS vdb.omniq AUTHORIZATION dbadmin;
+
+    CREATE TABLE omniq.SCALARS
+    (
+        UNIQUE_ID varchar(50) NOT NULL,
+        TIME_STAMP timestamp,
+        CURRENT_STATUS numeric(2,0),
+        VALUE varchar(300),
+        CONSTRAINT C_PRIMARY PRIMARY KEY (UNIQUE_ID) DISABLED
+    );
+
+    CREATE TABLE omniq.CONVERSION_PROCEDURE_TYPE
+    (
+        ID numeric(11,0) CONSTRAINT PROCEDURE_TYPE_ID_NNULL NOT NULL,
+        NAME varchar(200),
+        CONSTRAINT PROCEDURE_TYPE_PKEY PRIMARY KEY (ID) DISABLED
+    );
+
+    CREATE TABLE omniq.ENRICHMENT_IMSI
+    (
+        ID numeric(11,0) NOT NULL,
+        TIME_STAMP timestamp DEFAULT (now())::timestamp(6),
+        CURRENT_STATUS numeric(4,0),
+        IMSI varchar(50),
+        MSISDN varchar(50),
+        MS_TYPE varchar(50),
+        SUBSCRIBER_TYPE varchar(50),
+        ALIAS varchar(50),
+        UE_TYPE varchar(50),
+        CONSTRAINT C_UNIQUE UNIQUE (IMSI) DISABLED,
+        CONSTRAINT C_PRIMARY PRIMARY KEY (ID) DISABLED
+    );
+
+    CREATE TABLE omniq.ENRICHMENT_RELEASE_CAUSE
+    (
+        ID numeric(11,0) NOT NULL,
+        TIME_STAMP timestamp DEFAULT (now())::timestamp(6),
+        CURRENT_STATUS numeric(4,0),
+        RELEASE_CAUSE numeric(11,0),
+        RADCOMS_DESCRIPTION varchar(50),
+        ITU_CODE varchar(50),
+        SHORT varchar(50),
+        DESCRIPTION varchar(150),
+        RELEASE_TYPE varchar(50),
+        CATEGORY varchar(50),
+        CATEGORY1 varchar(50),
+        DUMMY_COL numeric(11,0),
+        ASR numeric(11,0),
+        NER numeric(11,0),
+        ROAMING_RELEASE_TYPE varchar(50),
+        CALL_DROP varchar(50),
+        PROTOCOL varchar(50),
+        CONSTRAINT C_UNIQUE UNIQUE (RELEASE_CAUSE) DISABLED,
+        CONSTRAINT C_PRIMARY PRIMARY KEY (ID) DISABLED
+    );
+
+    CREATE TABLE omniq.AGG_RELEASE_CAUSE_5_MIN
+    (
+        TIME_STAMP timestamp DEFAULT date_trunc('MINUTE', (now())::timestamp(6)),
+        START_TIME timestamp NOT NULL DEFAULT (now())::timestamp(6),
+        PROTOCOL varchar(50),
+        RELEASE_CAUSE numeric(11,0),
+        RELEASE_TYPE varchar(50),
+        RELEASE_CATEGORY varchar(50),
+        IMSI varchar(50),
+        CALLED_IMSI varchar(50),
+        SOURCE_NE_NAME varchar(100),
+        DEST_NE_NAME varchar(100),
+        SOURCE_NE_TYPE varchar(100),
+        DEST_NE_TYPE varchar(100),
+        CELL_REGION varchar(150),
+        PROBE_REGION varchar(50),
+        REL_COUNT numeric(11,0),
+        TOTAL_COUNT numeric(18,0),
+        PROCEDURE_TYPE numeric(11,0),
+        MANUFACTURER varchar(300),
+        MODEL varchar(150),
+        ROAMING_STATUS numeric(4,0),
+        ROAMING_DOMAIN varchar(50),
+        ROAMING_COUNTRY varchar(50),
+        ROAMING_OPERATOR_NAME varchar(160),
+        CELL_PROVINCE varchar(50),
+        CELL_TOWN varchar(150),
+        MARKET varchar(50),
+        SERVICE numeric(4,0),
+        RAT_TYPE_NAME varchar(50)
+    )
+    PARTITION BY (date_trunc('DAY', AGG_RELEASE_CAUSE_5_MIN.START_TIME));
+
+    CREATE TABLE omniq.AGG_RELEASE_CAUSE_DAY
+    (
+        TIME_STAMP timestamp DEFAULT date_trunc('MINUTE', (now())::timestamp(6)),
+        START_TIME timestamp NOT NULL DEFAULT (now())::timestamp(6),
+        PROTOCOL varchar(50),
+        RELEASE_CAUSE numeric(11,0),
+        RELEASE_TYPE varchar(50),
+        RELEASE_CATEGORY varchar(50),
+        IMSI varchar(50),
+        CALLED_IMSI varchar(50),
+        SOURCE_NE_NAME varchar(100),
+        DEST_NE_NAME varchar(100),
+        SOURCE_NE_TYPE varchar(100),
+        DEST_NE_TYPE varchar(100),
+        CELL_REGION varchar(150),
+        PROBE_REGION varchar(50),
+        REL_COUNT numeric(11,0),
+        TOTAL_COUNT numeric(18,0),
+        PROCEDURE_TYPE numeric(11,0),
+        MANUFACTURER varchar(300),
+        MODEL varchar(150),
+        ROAMING_STATUS numeric(4,0),
+        ROAMING_DOMAIN varchar(50),
+        ROAMING_COUNTRY varchar(50),
+        ROAMING_OPERATOR_NAME varchar(160),
+        CELL_PROVINCE varchar(50),
+        CELL_TOWN varchar(150),
+        MARKET varchar(50),
+        SERVICE numeric(4,0),
+        RAT_TYPE_NAME varchar(50)
+    )
+    PARTITION BY (date_trunc('DAY', AGG_RELEASE_CAUSE_DAY.START_TIME));
+
+    CREATE TABLE omniq.AGG_RELEASE_CAUSE_HOUR
+    (
+        TIME_STAMP timestamp DEFAULT date_trunc('MINUTE', (now())::timestamp(6)),
+        START_TIME timestamp NOT NULL DEFAULT (now())::timestamp(6),
+        PROTOCOL varchar(50),
+        RELEASE_CAUSE numeric(11,0),
+        RELEASE_TYPE varchar(50),
+        RELEASE_CATEGORY varchar(50),
+        IMSI varchar(50),
+        CALLED_IMSI varchar(50),
+        SOURCE_NE_NAME varchar(100),
+        DEST_NE_NAME varchar(100),
+        SOURCE_NE_TYPE varchar(100),
+        DEST_NE_TYPE varchar(100),
+        CELL_REGION varchar(150),
+        PROBE_REGION varchar(50),
+        REL_COUNT numeric(11,0),
+        TOTAL_COUNT numeric(18,0),
+        PROCEDURE_TYPE numeric(11,0),
+        MANUFACTURER varchar(300),
+        MODEL varchar(150),
+        ROAMING_STATUS numeric(4,0),
+        ROAMING_DOMAIN varchar(50),
+        ROAMING_COUNTRY varchar(50),
+        ROAMING_OPERATOR_NAME varchar(160),
+        CELL_PROVINCE varchar(50),
+        CELL_TOWN varchar(150),
+        MARKET varchar(50),
+        SERVICE numeric(4,0),
+        RAT_TYPE_NAME varchar(50)
+    )
+    PARTITION BY (date_trunc('DAY', AGG_RELEASE_CAUSE_HOUR.START_TIME));
+
+    CREATE TABLE omniq.RELEASE_CAUSES_ANOMALY_5_MIN
+    (
+        TIME_STAMP timestamp DEFAULT date_trunc('MINUTE', (now())::timestamp(6)),
+        START_TIME timestamp,
+        RELEASE_CAUSE numeric(11,0),
+        RELEASE_CAUSE_DESCRIPTION varchar(200),
+        RELEASE_CATEGORY varchar(50),
+        IMPACTED_IMSI numeric(11,0),
+        PREVIOUS_RELEASE_CAUSES_COUNT numeric(11,0),
+        CURRENT_RELEASE_CAUSES_COUNT numeric(11,0),
+        CURRENT_TO_PREVIOUS_RATIO numeric(11,0),
+        AVG_RELEASE_CAUSES numeric(11,0),
+        STDDEV_RELEASE_CAUSES numeric(11,0),
+        COEFFICIENT_RELEASE_CAUSES numeric(11,0),
+        SEVERITY varchar(50),
+        NOTIFICATION varchar(50),
+        IS_VIP_IMPACTED varchar(50),
+        ALARM_INITIATION_TIME timestamp,
+        ALARM_END_TIME timestamp,
+        ALARM_ID numeric(11,0),
+        COUNTRY_NAME varchar(50),
+        OPERATOR_NAME varchar(160),
+        ROAMING_DIRECTION varchar(50),
+        START_HOUR timestamp NOT NULL DEFAULT date_trunc('HOUR', RELEASE_CAUSES_ANOMALY_5_MIN.START_TIME)
+    )
+    PARTITION BY (date_trunc('DAY', RELEASE_CAUSES_ANOMALY_5_MIN.START_HOUR));
+
+    CREATE TABLE omniq.RELEASE_CAUSES_ANOMALY_HOUR
+    (
+        TIME_STAMP timestamp DEFAULT date_trunc('MINUTE', (now())::timestamp(6)),
+        START_TIME timestamp,
+        RELEASE_CAUSE numeric(11,0),
+        RELEASE_CAUSE_DESCRIPTION varchar(200),
+        RELEASE_CATEGORY varchar(50),
+        IMPACTED_IMSI numeric(11,0),
+        PREVIOUS_RELEASE_CAUSES_COUNT numeric(11,0),
+        CURRENT_RELEASE_CAUSES_COUNT numeric(11,0),
+        CURRENT_TO_PREVIOUS_RATIO numeric(11,0),
+        AVG_RELEASE_CAUSES numeric(11,0),
+        STDDEV_RELEASE_CAUSES numeric(11,0),
+        COEFFICIENT_RELEASE_CAUSES numeric(11,0),
+        SEVERITY varchar(50),
+        NOTIFICATION varchar(50),
+        IS_VIP_IMPACTED varchar(50),
+        ALARM_INITIATION_TIME timestamp,
+        ALARM_END_TIME timestamp,
+        ALARM_ID numeric(11,0),
+        COUNTRY_NAME varchar(50),
+        OPERATOR_NAME varchar(160),
+        ROAMING_DIRECTION varchar(50),
+        START_HOUR timestamp NOT NULL DEFAULT date_trunc('HOUR', RELEASE_CAUSES_ANOMALY_HOUR.START_TIME)
+    )
+    PARTITION BY (date_trunc('DAY', RELEASE_CAUSES_ANOMALY_HOUR.START_HOUR));
+
+    CREATE USER bi;
+    CREATE USER cognos;
+    CREATE USER omniq;
+
+    GRANT USAGE ON SCHEMA omniq to bi;
+    GRANT USAGE ON SCHEMA omniq to cognos;
+    GRANT USAGE ON SCHEMA omniq to omniq; 
+
+    GRANT SELECT on all tables in schema omniq TO bi;
+    GRANT SELECT on all tables in schema omniq TO cognos;
+    GRANT ALL on all tables in schema omniq TO omniq;
