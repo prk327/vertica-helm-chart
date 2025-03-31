@@ -1,0 +1,29 @@
+services:
+  vertica:
+    image: vertica/vertica-ce
+    container_name: vertica
+    environment:
+      - DBNAME=vdb
+      - APP_DB_PASSWORD=admin1234
+      - APP_DB_USER=mydata
+      - DBSCHEMA=something
+      - TZ=GMT
+    ports:
+      - "5433:5433"
+      - "5444:5444"
+    volumes:
+      - vertica_data:/vertica/data
+      - vertica_logs:/vertica/logs
+      - ./entrypoint.sh:/docker-entrypoint-initdb.d/entrypoint.sh  # Mount the script here
+    entrypoint: ["/bin/bash", "/docker-entrypoint-initdb.d/entrypoint.sh"]  # Run the script on container start
+    restart: always
+    networks:
+      - vertica-net
+
+volumes:
+  vertica_data:
+  vertica_logs:
+
+networks:
+  vertica-net:
+    driver: bridge
